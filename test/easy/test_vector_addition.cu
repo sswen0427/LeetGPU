@@ -23,7 +23,17 @@ TEST(LeetGPU, test1) {
     float A[] = {1.0, 2.0, 3.0, 4.0};
     float B[] = {5.0, 6.0, 7.0, 8.0};
     float C[] = {0, 0, 0, 0};
+
+    float *d_A, *d_B, *d_C;
+    constexpr size_t size = 4 * sizeof(float);
+    cudaMalloc((void**)&d_A, size);
+    cudaMalloc((void**)&d_B, size);
+    cudaMalloc((void**)&d_C, size);
+
+    cudaMemcpy(d_A, A, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, B, size, cudaMemcpyHostToDevice);
     solve(A, B, C, 4);
+    cudaMemcpy(C, d_C, size, cudaMemcpyDeviceToHost);
     for (int i = 0; i < 4; i++) {
         constexpr float expected[] = {6.0, 8.0, 10.0, 12.0};
         EXPECT_EQ(expected[i], C[i]);
