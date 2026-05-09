@@ -32,7 +32,7 @@ TEST(LeetGPU, test1) {
 
     cudaMemcpy(d_A, A, size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, B, size, cudaMemcpyHostToDevice);
-    solve(A, B, C, 4);
+    solve(d_A, d_B, d_C, 4);
     cudaMemcpy(C, d_C, size, cudaMemcpyDeviceToHost);
     for (int i = 0; i < 4; i++) {
         constexpr float expected[] = {6.0, 8.0, 10.0, 12.0};
