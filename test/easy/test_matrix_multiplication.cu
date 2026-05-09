@@ -26,27 +26,36 @@ void solve(const float* A, const float* B, float* C, int M, int N, int K) {
   cudaDeviceSynchronize();
 }
 
-// https://leetgpu.com/challenges/matrix-multiplication
-TEST(LeetGPU, MatrixMultiplication) {
-  float A[] = {1.0, 2.0, 3.0, 4.0};
-  float B[] = {5.0, 6.0, 7.0, 8.0};
-  float C[] = {0, 0, 0, 0};
-
+void helper(const std::vector<float>& expected, const std::vector<float>& A,
+            const std::vector<float>& B, std::vector<float>& C, int M, int N,
+            int K) {
   float *d_A, *d_B, *d_C;
-  constexpr size_t size = 4 * sizeof(float);
-  cudaMalloc(&d_A, size);
-  cudaMalloc(&d_B, size);
-  cudaMalloc(&d_C, size);
+  cudaMalloc(&d_A, A.size() * sizeof(float));
+  cudaMalloc(&d_B, B.size() * sizeof(float));
+  cudaMalloc(&d_C, C.size() * sizeof(float));
 
-  cudaMemcpy(d_A, A, size, cudaMemcpyHostToDevice);
-  cudaMemcpy(d_B, B, size, cudaMemcpyHostToDevice);
-  solve(d_A, d_B, d_C, 2, 2, 2);
-  cudaMemcpy(C, d_C, size, cudaMemcpyDeviceToHost);
-  for (int i = 0; i < 4; i++) {
-    constexpr float expected[] = {6.0, 8.0, 10.0, 12.0};
-    EXPECT_EQ(expected[i], C[i]);
-  }
+  cudaMemcpy(d_A, A.data(), A.size() * sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_B, B.data(), B.size() * sizeof(float), cudaMemcpyHostToDevice);
+  solve(d_A, d_B, d_C, M, N, K);
+  cudaMemcpy(C.data(), d_C, C.size() * sizeof(float), cudaMemcpyDeviceToHost);
+
+  EXPECT_EQ(expected, C);
   cudaFree(d_A);
   cudaFree(d_B);
   cudaFree(d_C);
+}
+
+// https://leetgpu.com/challenges/matrix-multiplication
+TEST(LeetGPU, MatrixMultiplication) {
+  std::vector<float> A1 = {1.0, 2.0, 3.0, 4.0};
+  std::vector<float> B1 = {5.0, 6.0, 7.0, 8.0};
+  std::vector<float> C1 = {0, 0, 0, 0};
+  std::vector<float> expected1 = {19.0, 22.0, 43.0, 50.0};
+  helper(expected1, A1, B1, C1, 2, 2, 2);
+
+  std::vector<float> A2 = {1.0, 2.0, 3.0};
+  std::vector<float> B2 = {4.0, 5.0, 6.0};
+  std::vector<float> C2 = {0};
+  std::vector<float> expected2 = {32.0};
+  helper(expected2, A2, B2, C2, 1, 3, 1);
 }
