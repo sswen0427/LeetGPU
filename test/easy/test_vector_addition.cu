@@ -41,11 +41,11 @@ TEST(LeetGPU, VectorAddition) {
   std::vector<float> B1 = {5.0, 6.0, 7.0, 8.0};
   std::vector<float> C1 = {0, 0, 0, 0};
   std::vector<float> expected1 = {6.0, 8.0, 10.0, 12.0};
-  helper(A1, B1, C1, expected1);
+  helper(expected1, A1, B1, C1);
 
   std::vector<float> A2 = {1.5, 1.5, 1.5};
   std::vector<float> B2 = {2.3, 2.3, 2.3};
   std::vector<float> C2 = {0, 0, 0};
   std::vector<float> expected2 = {3.8, 3.8, 3.8};
-  helper(A2, B2, C2, expected2);
+  helper(expected2, A2, B2, C2);
 }
