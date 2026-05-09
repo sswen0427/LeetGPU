@@ -38,4 +38,7 @@ TEST(LeetGPU, test1) {
         constexpr float expected[] = {6.0, 8.0, 10.0, 12.0};
         EXPECT_EQ(expected[i], C[i]);
     }
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
 }
