@@ -18,9 +18,10 @@ __global__ void qk(const float* QD, const float* K, float* QK, int N,
     int row = id / (h * N);
     int col = id % (h * N);
     int head_idx = col / d_k;
+    int head_col = col % d_k;
 
     int q_idx = row * d_model + head_idx * d_k;
-    int k_idx = col * d_model + head_idx * d_k;
+    int k_idx = head_col * d_model + head_idx * d_k;
 
     float sum = 0;
     for (int i = 0; i < d_k; i++) {
@@ -87,6 +88,8 @@ void solve(const float* Q, const float* K, const float* V, float* output, int N,
 
   blocksPerGrid = (h * N * N + threadsPerBlock - 1) / threadsPerBlock;
   qk<<<blocksPerGrid, threadsPerBlock>>>(QD, K, QK, N, d_model, h);
+  std::vector<float> tmp(h * N * N);
+  cudaMemcpy(tmp.data(), QK, h * N * N * sizeof(float), cudaMemcpyDeviceToHost);
 
   blocksPerGrid = (h * N + threadsPerBlock - 1) / threadsPerBlock;
   softmax<<<blocksPerGrid, threadsPerBlock>>>(QK, N, h);
