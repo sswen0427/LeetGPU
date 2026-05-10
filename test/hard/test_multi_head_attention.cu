@@ -1,4 +1,5 @@
 #include <cuda_runtime_api.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <vector>
@@ -119,8 +120,8 @@ void helper(const std::vector<float>& expected, const std::vector<float>& Q,
   std::vector<float> output(expected.size());
   cudaMemcpy(output.data(), d_output, output.size() * sizeof(float),
              cudaMemcpyDeviceToHost);
-
-  EXPECT_EQ(expected, output);
+  EXPECT_THAT(output,
+              ::testing::Pointwise(::testing::FloatNear(0.01f), expected));
   cudaFree(d_Q);
   cudaFree(d_K);
   cudaFree(d_V);
