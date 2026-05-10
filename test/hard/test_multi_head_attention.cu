@@ -89,8 +89,6 @@ void solve(const float* Q, const float* K, const float* V, float* output, int N,
 
   blocksPerGrid = (h * N * N + threadsPerBlock - 1) / threadsPerBlock;
   qk<<<blocksPerGrid, threadsPerBlock>>>(QD, K, QK, N, d_model, h);
-  std::vector<float> tmp(h * N * N);
-  cudaMemcpy(tmp.data(), QK, h * N * N * sizeof(float), cudaMemcpyDeviceToHost);
 
   blocksPerGrid = (h * N + threadsPerBlock - 1) / threadsPerBlock;
   softmax<<<blocksPerGrid, threadsPerBlock>>>(QK, N, h);
