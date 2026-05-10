@@ -15,9 +15,9 @@ __global__ void qk(const float* QD, const float* K, float* QK, int N,
   int id = blockIdx.x * blockDim.x + threadIdx.x;
   int d_k = d_model / h;
   if (id < h * N * N) {
-    int head_idx = (id % (h * N)) / d_k;
     int row = id / (h * N);
     int col = id % (h * N);
+    int head_idx = col / d_k;
 
     int q_idx = row * d_model + head_idx * d_k;
     int k_idx = col * d_model + head_idx * d_k;
@@ -61,12 +61,11 @@ __global__ void mm(const float* QK, const float* V, float* output, int N,
     int col = id % d_model;
     int head_idx = col / d_k;
 
-    const float* current_QK = QK + head_idx * (N * N);
-
     float result = 0;
     for (int i = 0; i < N; i++) {
-      result += QK[row * d_model + head_idx * d_k + i] *
-                V[i * d_model + head_idx * d_k + col];
+      int index1 = row * d_model + head_idx * d_k + i;
+      int index2 = i * d_model + col;
+      result += QK[index1] * V[index2];
     }
     output[id] = result;
   }
