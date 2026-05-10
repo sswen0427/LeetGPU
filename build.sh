@@ -24,8 +24,7 @@ case $MODE in
         cd build
         cmake .. \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_FLAGS="-DCUDA_DEBUG" \
-            -DCMAKE_CUDA_FLAGS="-DCUDA_DEBUG"
+            -DCMAKE_CUDA_FLAGS="-g -G -O0"
         make -j${CORES}
         echo "Debug build completed successfully!"
         ;;
