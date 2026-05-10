@@ -114,7 +114,7 @@ void helper(const std::vector<float>& expected, const std::vector<float>& Q,
 TEST(LeetGPU, MultiHeadAttention) {
   int N1 = 2, d_model1 = 4, h1 = 2;
   std::vector<float> Q1 = {1.0, 0.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
-  std::vector<float> k1 = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+  std::vector<float> K1 = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
   std::vector<float> V1 = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0};
   std::vector<float> expected1 = {2.39, 2.89, 3.50, 4.00,
                                   2.50, 3.00, 3.50, 4.00};
@@ -122,7 +122,7 @@ TEST(LeetGPU, MultiHeadAttention) {
 
   int N2 = 1, d_model2 = 2, h2 = 1;
   std::vector<float> Q2 = {1.0, 1.0};
-  std::vector<float> k2 = {1.0, 1.0};
+  std::vector<float> K2 = {1.0, 1.0};
   std::vector<float> V2 = {2.0, 3.0};
   std::vector<float> expected2 = {2.0, 3.0};
   helper(expected2, Q2, K2, V2, N2, d_model2, h2);
