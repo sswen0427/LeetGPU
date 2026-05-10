@@ -6,8 +6,8 @@ show_help() {
     echo "Usage: ./build.sh [MODE]"
     echo ""
     echo "Modes:"
-    echo "  debug    : Compile in Debug mode (-g -G, injects CUDA_DEBUG macro). Best for development."
-    echo "  release  : Compile in Release mode (-O3 optimization). Best for performance testing."
+    echo "  debug    : Compile in Debug mode (-g -G -O0). Best for cuda-gdb debugging."
+    echo "  release  : Compile in Release mode (-O3, NDEBUG). Best for performance testing."
     echo "  help     : Show this help message."
     echo ""
 }
@@ -34,9 +34,7 @@ case $MODE in
         mkdir build
         cd build
         cmake .. \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_FLAGS="-DNDEBUG" \
-            -DCMAKE_CUDA_FLAGS="-DNDEBUG"
+            -DCMAKE_BUILD_TYPE=Release
         make -j${CORES}
         echo "Release build completed successfully!"
         ;;
