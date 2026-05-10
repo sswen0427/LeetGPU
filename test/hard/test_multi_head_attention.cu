@@ -1,6 +1,8 @@
 #include <cuda_runtime_api.h>
 #include <gtest/gtest.h>
 
+#include <vector>
+
 __global__ void scale(const float* Q, float* QD, int n, float factor) {
   int id = blockIdx.x * blockDim.x + threadIdx.x;
   if (id < n) {
@@ -9,51 +11,62 @@ __global__ void scale(const float* Q, float* QD, int n, float factor) {
 }
 
 __global__ void qk(const float* QD, const float* K, float* QK, int N,
-                   int d_model) {
+                   int d_model, int h) {
   int id = blockIdx.x * blockDim.x + threadIdx.x;
-  if (id < N * N) {
-    int row = id / N;
-    int col = id % N;
+  int d_k = d_model / h;
+  if (id < h * N * N) {
+    int head_idx = (id % (h * N)) / d_k;
+    int row = id / (h * N);
+    int col = id % (h * N);
 
-    int index1 = row * d_model;
-    int index2 = col * d_model;
+    int q_idx = row * d_model + head_idx * d_k;
+    int k_idx = col * d_model + head_idx * d_k;
+
     float sum = 0;
-    for (int i = 0; i < N; i++) {
-      sum += QD[index1 + i] * K[index2 + i];
+    for (int i = 0; i < d_k; i++) {
+      sum += QD[q_idx + i] * K[k_idx + i];
     }
     QK[id] = sum;
   }
 }
 
-__global__ void softmax(float* QK, int N) {
-  int row = blockIdx.x * blockDim.x + threadIdx.x;
-  if (row < N) {
+__global__ void softmax(float* QK, int N, int h) {
+  int row_id = blockIdx.x * blockDim.x + threadIdx.x;
+  if (row_id < h * N) {
+    int index = row_id * N;
+
     float max_val = -FLT_MAX;
     for (int i = 0; i < N; i++) {
-      max_val = fmaxf(max_val, QK[row * N + i]);
+      max_val = fmaxf(max_val, QK[index + i]);
     }
 
     float sum = 0;
     for (int i = 0; i < N; i++) {
-      float e_val = expf(QK[row * N + i] - max_val);
-      QK[row * N + i] = e_val;
+      float e_val = expf(QK[index + i] - max_val);
+      QK[index + i] = e_val;
       sum += e_val;
     }
     for (int i = 0; i < N; i++) {
-      QK[row * N + i] /= sum;
+      QK[index + i] /= sum;
     }
   }
 }
 
 __global__ void mm(const float* QK, const float* V, float* output, int N,
-                   int d_model) {
+                   int d_model, int h) {
   int id = blockIdx.x * blockDim.x + threadIdx.x;
+  int d_k = d_model / h;
   if (id < N * d_model) {
-    float result = 0;
     int row = id / d_model;
-    int column = id % d_model;
+    int col = id % d_model;
+    int head_idx = col / d_k;
+
+    const float* current_QK = QK + head_idx * (N * N);
+
+    float result = 0;
     for (int i = 0; i < N; i++) {
-      result += QK[row * N + i] * V[i * d_model + column];
+      result += QK[row * d_model + head_idx * d_k + i] *
+                V[i * d_model + head_idx * d_k + col];
     }
     output[id] = result;
   }
@@ -65,7 +78,7 @@ void solve(const float* Q, const float* K, const float* V, float* output, int N,
   float* QD;
   float* QK;
   cudaMalloc(&QD, N * d_model * sizeof(float));
-  cudaMalloc(&QK, N * N * sizeof(float));
+  cudaMalloc(&QK, h * N * N * sizeof(float));
 
   int threadsPerBlock = 1024;
 
@@ -73,12 +86,14 @@ void solve(const float* Q, const float* K, const float* V, float* output, int N,
   int blocksPerGrid = (N * d_model + threadsPerBlock - 1) / threadsPerBlock;
   scale<<<blocksPerGrid, threadsPerBlock>>>(Q, QD, N * d_model, factor);
 
-  blocksPerGrid = (N * N + threadsPerBlock - 1) / threadsPerBlock;
-  qk<<<blocksPerGrid, threadsPerBlock>>>(QD, K, QK, N, d_model);
-  softmax<<<blocksPerGrid, threadsPerBlock>>>(QK, N);
+  blocksPerGrid = (h * N * N + threadsPerBlock - 1) / threadsPerBlock;
+  qk<<<blocksPerGrid, threadsPerBlock>>>(QD, K, QK, N, d_model, h);
+
+  blocksPerGrid = (h * N + threadsPerBlock - 1) / threadsPerBlock;
+  softmax<<<blocksPerGrid, threadsPerBlock>>>(QK, N, h);
 
   blocksPerGrid = (N * d_model + threadsPerBlock - 1) / threadsPerBlock;
-  mm<<<blocksPerGrid, threadsPerBlock>>>(QK, V, output, N, d_model);
+  mm<<<blocksPerGrid, threadsPerBlock>>>(QK, V, output, N, d_model, h);
 
   cudaFree(QD);
   cudaFree(QK);
