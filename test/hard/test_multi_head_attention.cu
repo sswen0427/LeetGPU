@@ -79,6 +79,9 @@ void solve(const float* Q, const float* K, const float* V, float* output, int N,
 
   blocksPerGrid = (N * d_model + threadsPerBlock - 1) / threadsPerBlock;
   mm<<<blocksPerGrid, threadsPerBlock>>>(QK, V, output, N, d_model);
+
+  cudaFree(QD);
+  cudaFree(QK);
 }
 
 void helper(const std::vector<float>& expected, const std::vector<float>& Q,
